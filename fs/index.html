@@ -38,20 +38,40 @@
   </div>
   <div class="row form">
     <div class="col c4">
-      <form method="post" id="form">
-      <div class="form-control">
-        <label for="ssid">WiFi Network:</label>
-        <input type="text" class="smooth" id="ssid" required name="ssid" placeholder="Type WiFi network...">
+      <div class="row">
+        <div class="col c12">
+          <form method="post" id="ap-form">
+          <h2>Wifi AP settings</h2>
+          <div class="form-control">
+            <label for="ap-ssid">AP SSID:</label>
+            <input type="text" class="smooth" id="ap-ssid" required placeholder="Type AP SSID..">
+          </div>
+          <div class="form-control">
+            <label for="ap-pass">AP Password:</label>
+            <input type="text" class="smooth" id="ap-pass" placeholder="Type AP password..">
+          </div>
+          <div class="form-control"><button type="submit" class="btn btn-sm btn-c">Save AP settings</button></div>
+          </form>
+        </div>
+        <div class="col c12">
+          <h2>Wifi STA settings</h2>
+          <form method="post" id="form">
+          <div class="form-control">
+            <label for="ssid">WiFi Network:</label>
+            <input type="text" class="smooth" id="ssid" required placeholder="Type WiFi network...">
+          </div>
+          <div class="form-control">
+            <label for="pass">WiFi Password:</label>
+            <input type="text" class="smooth" id="pass" placeholder="Type WiFi password...">
+          </div>
+          <div class="form-control"><button type="submit" class="btn btn-sm btn-c">Save STA settings</button></div>
+          </form>
+        </div>
       </div>
-      <div class="form-control">
-        <label for="pass">WiFi Password:</label>
-        <input type="text" class="smooth" id="pass" name="pass" placeholder="Type WiFi password...">
-      </div>
-      <div class="form-control"><button type="submit" class="btn btn-sm btn-c" id="save">Save WiFi settings</button></div>
-      </form>
     </div>
 
     <div class="col c8">
+      <button type="button" onclick="result.innerHTML = ''; msgid = 0;" class="btn btn-sm btn-c">Clear</button>
       <div id="result"></div>
     </div>
 
@@ -59,10 +79,13 @@
 </div>
 
 <script>
+var apssid = document.querySelector('#ap-ssid');
+var appass = document.querySelector('#ap-pass');
+var apform = document.querySelector('#ap-form');
 var ssid = document.querySelector('#ssid');
 var pass = document.querySelector('#pass');
-var result = document.querySelector('#result');
 var form = document.querySelector('#form');
+var result = document.querySelector('#result');
 var msgid = 0;
 var log = function (msg) {
   if(!msg) return;
@@ -87,6 +110,8 @@ log('Calling /rpc/Config.Get ..');
         var json = JSON.parse(xhr.responseText);
         ssid.value = json.wifi.sta.ssid;
         pass.value = json.wifi.sta.pass;
+        apssid.value = json.wifi.ap.ssid;
+        appass.value = json.wifi.ap.pass;
       }catch(e){
         log(e);
       }
@@ -100,7 +125,7 @@ log('Calling /rpc/Config.Get ..');
 form.addEventListener('submit', function (e){
   e.preventDefault();
   if(!ssid.value) return;
-  log('Calling /rpc/Config.Set : ' + ssid.value + ' / ' + pass.value);
+  log('Calling /rpc/Config.Set STA: ' + ssid.value + ' / ' + pass.value);
   (function (){
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/rpc/Config.Set');
@@ -126,6 +151,37 @@ form.addEventListener('submit', function (e){
       }
     };
     xhr.send(JSON.stringify({config: {wifi: {sta: {enable: true, ssid: ssid.value, pass: pass.value}}}}));
+  })();
+});
+apform.addEventListener('submit', function (e){
+  e.preventDefault();
+  if(!apssid.value) return;
+  log('Calling /rpc/Config.Set AP: ' + apssid.value + ' / ' + appass.value);
+  (function (){
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/rpc/Config.Set');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        log('Success. Saving and rebooting..');
+        (function (){
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', '/rpc/Config.Save');
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.onload = function() {
+            if (xhr.status === 200) {
+              log('Success. Rebooting..');
+            }else{
+              log('Request failed. Returned status of ' + xhr.status);
+            }
+          };
+          xhr.send(JSON.stringify({"reboot": true}));
+        })();
+      }else{
+        log('Request failed. Returned status of ' + xhr.status);
+      }
+    };
+    xhr.send(JSON.stringify({config: {wifi: {ap: {enable: true, ssid: apssid.value, pass: appass.value}}}}));
   })();
 });
 </script>
