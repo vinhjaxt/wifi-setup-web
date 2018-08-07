@@ -9,6 +9,10 @@ mongoose_os_version: ${mos.version}
 filesystem:
   - fs
 
+config_schema:
+  - ["wifi.ap.ssid", "Mongoose_Config"]
+  - ["wifi.ap.pass", "Mongoose"]
+
 libs:
   - origin: https://github.com/mongoose-os-libs/ca-bundle
   - origin: https://github.com/mongoose-os-libs/http-server
